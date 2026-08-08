@@ -10,29 +10,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,20 +29,27 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myQuizApp.data.model.QuizQuestionModel
 import com.myQuizApp.ui.theme.SuccessGreen
 import com.myQuizApp.utils.Result
-
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun QuizScreen(
     modifier: Modifier = Modifier,
     viewModel: QuizViewModel,
-    onFinished: () -> Unit
+    onFinished: () -> Unit,
 ) {
     val quizResult by viewModel.quizResponse.collectAsStateWithLifecycle()
     val currentIndex by viewModel.currentIndex.collectAsStateWithLifecycle()
     val userSelections by viewModel.userSelections.collectAsStateWithLifecycle()
     val streak by viewModel.streak.collectAsStateWithLifecycle()
+
+    // Handle ViewModel events
+    LaunchedEffect(viewModel.events) {
+        viewModel.events.collectLatest { event ->
+            when (event) {
+                is QuizEvent.FinishQuiz -> onFinished()
+            }
+        }
+    }
 
     Box(
         modifier = modifier
@@ -81,16 +73,12 @@ fun QuizScreen(
                         selectedOption = userSelections[currentIndex],
                         streak = streak,
                         onOptionSelected = { optionIndex ->
-                            viewModel.selectOption(currentIndex, optionIndex)
+                            viewModel.selectOption(optionIndex)
                         },
-                        onNext = {
-                            if (currentIndex == questions.size - 1) {
-                                onFinished()
-                            } else {
-                                viewModel.nextQuestion(questions.size)
-                            }
-                        },
-                        onPrevious = { viewModel.previousQuestion() })
+                        onNext = { viewModel.nextQuestion() },
+                        onPrevious = { viewModel.previousQuestion() },
+                        onSkip = { viewModel.skipQuestion() }
+                    )
                 } else {
                     Text("No questions available", modifier = Modifier.align(Alignment.Center))
                 }
@@ -116,17 +104,20 @@ fun StreakBadge(streak: Int) {
         initialValue = 1f,
         targetValue = if (isOnFire) 1.2f else 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(500, easing = LinearEasing), repeatMode = RepeatMode.Reverse
+            animation = tween(500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
         ),
         label = "scale"
     )
 
     val fireColor by animateColorAsState(
-        targetValue = if (isOnFire) Color(0xFFFF9800) else Color.Gray, label = "fireColor"
+        targetValue = if (isOnFire) Color(0xFFFF9800) else Color.Gray,
+        label = "fireColor"
     )
 
     Row(
-        verticalAlignment = Alignment.CenterVertically, modifier = Modifier
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
             .background(
                 color = if (isOnFire) Color(0xFFFF9800).copy(alpha = 0.1f) else Color.Transparent,
                 shape = RoundedCornerShape(16.dp)
@@ -143,7 +134,7 @@ fun StreakBadge(streak: Int) {
         )
         if (streak > 0) {
             Text(
-                text = "$streak",
+                text = streak.toString(),
                 color = fireColor,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
@@ -171,7 +162,8 @@ fun QuizContent(
     streak: Int,
     onOptionSelected: (Int) -> Unit,
     onNext: () -> Unit,
-    onPrevious: () -> Unit
+    onPrevious: () -> Unit,
+    onSkip: () -> Unit
 ) {
     val scrollState = rememberScrollState()
 
@@ -220,39 +212,55 @@ fun QuizContent(
                 }
 
                 OptionItem(
-                    text = option, status = optionStatus, onClick = {
-                        if (!isAnswered) onOptionSelected(index)
-                    })
+                    text = option,
+                    status = optionStatus,
+                ) {
+                    if (!isAnswered) onOptionSelected(index)
+                }
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
 
         Spacer(modifier = Modifier.weight(1f))
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Row(
-            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(
+            // Previous Button: Low priority
+            TextButton(
                 onClick = onPrevious,
                 enabled = currentIndex > 0,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.height(40.dp)
+                modifier = Modifier.height(48.dp)
             ) {
                 Text("Previous", style = MaterialTheme.typography.labelLarge)
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Button(
-                onClick = onNext,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.height(40.dp)
-            ) {
-                Text(
-                    if (currentIndex == totalQuestions - 1) "Finish" else "Next",
-                    style = MaterialTheme.typography.labelLarge
-                )
+
+            // Dynamic Right Button: Skip -> Next -> Finish
+            val isLast = currentIndex == (totalQuestions - 1)
+            
+            if (selectedOption == null) {
+                // User hasn't answered yet: Show Skip
+                OutlinedButton(
+                    onClick = onSkip,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.height(44.dp),
+                    contentPadding = PaddingValues(horizontal = 24.dp)
+                ) {
+                    Text(if (isLast) "Finish" else "Skip", style = MaterialTheme.typography.labelLarge)
+                }
+            } else {
+                // User has answered: Show Next (to bypass the 2s timer)
+                Button(
+                    onClick = onNext,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.height(44.dp),
+                    contentPadding = PaddingValues(horizontal = 24.dp)
+                ) {
+                    Text(if (isLast) "Finish" else "Next", style = MaterialTheme.typography.labelLarge)
+                }
             }
         }
     }
@@ -264,7 +272,9 @@ enum class OptionStatus {
 
 @Composable
 fun OptionItem(
-    text: String, status: OptionStatus, onClick: () -> Unit
+    text: String,
+    status: OptionStatus,
+    onClick: () -> Unit
 ) {
     val backgroundColor = when (status) {
         OptionStatus.Normal -> MaterialTheme.colorScheme.surface
