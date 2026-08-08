@@ -2,6 +2,7 @@ package com.myQuizApp.di
 
 import android.content.Context
 import com.chuckerteam.chucker.api.ChuckerInterceptor
+import com.myQuizApp.BuildConfig
 import com.myQuizApp.data.api.QuizApi
 import dagger.Module
 import dagger.Provides
@@ -17,7 +18,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-    private const val BASE_URL = "https://gist.githubusercontent.com/"
 
     @Provides
     @Singleton
@@ -32,7 +32,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideRetrofit(client: OkHttpClient): Retrofit {
-        return Retrofit.Builder().client(client).baseUrl(BASE_URL)
+        return Retrofit.Builder().client(client).baseUrl(BuildConfig.BASE_URL)
             .addConverterFactory(GsonConverterFactory.create()).build()
     }
 

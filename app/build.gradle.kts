@@ -20,12 +20,29 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    flavorDimensions += "env"
+    productFlavors {
+        create("stage") {
+            dimension = "env"
+            applicationIdSuffix = ".stage"
+            buildConfigField("String", "BASE_URL", "\"https://gist.githubusercontent.com/\"")
+            resValue("string", "app_name", "Quiz app Stage")
+        }
+        create("prod") {
+            dimension = "env"
+            buildConfigField("String", "BASE_URL", "\"https://gist.githubusercontent.com/\"")
+            resValue("string", "app_name", "Quiz app")
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -41,6 +58,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -91,6 +109,7 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 
-    debugImplementation("com.github.chuckerteam.chucker:library:4.0.0")
-    releaseImplementation("com.github.chuckerteam.chucker:library-no-op:4.0.0")
+    // chucker
+    debugImplementation(libs.library)
+    releaseImplementation(libs.library.no.op)
 }

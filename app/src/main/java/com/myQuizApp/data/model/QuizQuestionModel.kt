@@ -1,8 +1,9 @@
 package com.myQuizApp.data.model
 
+import androidx.annotation.Keep
 import com.google.gson.annotations.SerializedName
 
-
+@Keep
 data class QuizQuestionModel(
     @SerializedName("id") val id: Int? = -1,
 

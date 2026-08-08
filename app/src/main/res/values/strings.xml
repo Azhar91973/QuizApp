@@ -1,5 +1,4 @@
 <resources>
-    <string name="app_name">Quiz app</string>
     <string name="no_questions_available">No questions available</string>
     <string name="error_message">Error: %1$s</string>
     <string name="streak_content_description">Streak</string>
