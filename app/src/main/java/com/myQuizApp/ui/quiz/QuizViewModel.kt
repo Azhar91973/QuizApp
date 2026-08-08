@@ -6,6 +6,7 @@ import com.myQuizApp.data.QuizRepo
 import com.myQuizApp.data.model.QuizQuestionModel
 import com.myQuizApp.utils.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,7 +45,15 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
     fun nextQuestion(totalQuestions: Int) {
         if (_currentIndex.value < (totalQuestions - 1)) {
             _currentIndex.value += 1
+        } else {
+            // Signal quiz completion if needed or handled in UI
         }
+    }
+
+    fun restartQuiz() {
+        _currentIndex.value = 0
+        _userSelections.value = emptyMap()
+        _streak.value = 0
     }
 
     fun previousQuestion() {

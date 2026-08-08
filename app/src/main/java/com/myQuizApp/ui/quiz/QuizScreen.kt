@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,14 +40,20 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myQuizApp.data.model.QuizQuestionModel
 import com.myQuizApp.ui.theme.SuccessGreen
 import com.myQuizApp.utils.Result
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 @Composable
-fun QuizScreen(modifier: Modifier, viewModel: QuizViewModel = hiltViewModel()) {
+fun QuizScreen(
+    modifier: Modifier = Modifier,
+    viewModel: QuizViewModel,
+    onFinished: () -> Unit
+) {
     val quizResult by viewModel.quizResponse.collectAsStateWithLifecycle()
     val currentIndex by viewModel.currentIndex.collectAsStateWithLifecycle()
     val userSelections by viewModel.userSelections.collectAsStateWithLifecycle()
@@ -78,7 +83,13 @@ fun QuizScreen(modifier: Modifier, viewModel: QuizViewModel = hiltViewModel()) {
                         onOptionSelected = { optionIndex ->
                             viewModel.selectOption(currentIndex, optionIndex)
                         },
-                        onNext = { viewModel.nextQuestion(questions.size) },
+                        onNext = {
+                            if (currentIndex == questions.size - 1) {
+                                onFinished()
+                            } else {
+                                viewModel.nextQuestion(questions.size)
+                            }
+                        },
                         onPrevious = { viewModel.previousQuestion() })
                 } else {
                     Text("No questions available", modifier = Modifier.align(Alignment.Center))
@@ -162,9 +173,12 @@ fun QuizContent(
     onNext: () -> Unit,
     onPrevious: () -> Unit
 ) {
+    val scrollState = rememberScrollState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)
             .padding(16.dp)
     ) {
         Row(
@@ -193,7 +207,7 @@ fun QuizContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             question.options?.forEachIndexed { index, option ->
                 val isAnswered = selectedOption != null
                 val correctIndex = question.correctOptionIndex
@@ -211,28 +225,9 @@ fun QuizContent(
                     })
                 Spacer(modifier = Modifier.height(8.dp))
             }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Row(
-                modifier = Modifier.clickable { /* Expand Result */ },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "See Result",
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Medium
-                )
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
         }
 
+        Spacer(modifier = Modifier.weight(1f))
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(
@@ -250,12 +245,14 @@ fun QuizContent(
             Spacer(modifier = Modifier.width(12.dp))
             Button(
                 onClick = onNext,
-                enabled = currentIndex < totalQuestions - 1,
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.height(40.dp)
             ) {
-                Text("Next", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    if (currentIndex == totalQuestions - 1) "Finish" else "Next",
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
         }
     }
