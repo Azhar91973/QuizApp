@@ -2,6 +2,19 @@ package com.myQuizApp.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+val BluePrimary = Color(0xFF0D47A1)
+val BlueSecondary = Color(0xFF1976D2)
+val BlueTertiary = Color(0xFF42A5F5)
+
+val BackgroundLight = Color(0xFFF8F9FA)
+val SurfaceLight = Color(0xFFFFFFFF)
+
+val TextPrimary = Color(0xFF000000)
+val TextSecondary = Color(0xFF757575)
+
+val ErrorRed = Color(0xFFB71C1C)
+
+// Material 3 defaults for fallback
 val Purple80 = Color(0xFFD0BCFF)
 val PurpleGrey80 = Color(0xFFCCC2DC)
 val Pink80 = Color(0xFFEFB8C8)
