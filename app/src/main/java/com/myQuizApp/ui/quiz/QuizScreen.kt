@@ -1,5 +1,12 @@
 package com.myQuizApp.ui.quiz
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,6 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -28,6 +36,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,6 +52,7 @@ fun QuizScreen(modifier: Modifier, viewModel: QuizViewModel = hiltViewModel()) {
     val quizResult by viewModel.quizResponse.collectAsStateWithLifecycle()
     val currentIndex by viewModel.currentIndex.collectAsStateWithLifecycle()
     val userSelections by viewModel.userSelections.collectAsStateWithLifecycle()
+    val streak by viewModel.streak.collectAsStateWithLifecycle()
 
     Box(
         modifier = modifier
@@ -63,6 +74,7 @@ fun QuizScreen(modifier: Modifier, viewModel: QuizViewModel = hiltViewModel()) {
                         currentIndex = currentIndex,
                         totalQuestions = questions.size,
                         selectedOption = userSelections[currentIndex],
+                        streak = streak,
                         onOptionSelected = { optionIndex ->
                             viewModel.selectOption(currentIndex, optionIndex)
                         },
@@ -85,11 +97,67 @@ fun QuizScreen(modifier: Modifier, viewModel: QuizViewModel = hiltViewModel()) {
 }
 
 @Composable
+fun StreakBadge(streak: Int) {
+    val isOnFire = streak >= 3
+    val infiniteTransition = rememberInfiniteTransition(label = "streak")
+
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (isOnFire) 1.2f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(500, easing = LinearEasing), repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+
+    val fireColor by animateColorAsState(
+        targetValue = if (isOnFire) Color(0xFFFF9800) else Color.Gray, label = "fireColor"
+    )
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically, modifier = Modifier
+            .background(
+                color = if (isOnFire) Color(0xFFFF9800).copy(alpha = 0.1f) else Color.Transparent,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.LocalFireDepartment,
+            contentDescription = "Streak",
+            tint = fireColor,
+            modifier = Modifier
+                .size(if (isOnFire) 24.dp else 20.dp)
+                .graphicsLayer(scaleX = scale, scaleY = scale)
+        )
+        if (streak > 0) {
+            Text(
+                text = "$streak",
+                color = fireColor,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
+        if (isOnFire) {
+            Text(
+                text = " ON FIRE!",
+                color = Color(0xFFFF9800),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
 fun QuizContent(
     question: QuizQuestionModel,
     currentIndex: Int,
     totalQuestions: Int,
     selectedOption: Int?,
+    streak: Int,
     onOptionSelected: (Int) -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit
@@ -110,12 +178,8 @@ fun QuizContent(
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold
             )
-            Text(
-                text = "Quit",
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable { /* Handle Quit */ })
+
+            StreakBadge(streak = streak)
         }
 
         Spacer(modifier = Modifier.height(16.dp))

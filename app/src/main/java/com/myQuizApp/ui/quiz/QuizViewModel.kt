@@ -24,6 +24,12 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
     private val _userSelections = MutableStateFlow<Map<Int, Int>>(emptyMap())
     val userSelections: StateFlow<Map<Int, Int>> = _userSelections.asStateFlow()
 
+    private val _streak = MutableStateFlow(0)
+    val streak: StateFlow<Int> = _streak.asStateFlow()
+
+    private val _bestStreak = MutableStateFlow(0)
+    val bestStreak: StateFlow<Int> = _bestStreak.asStateFlow()
+
     init {
         loadQuiz()
     }
@@ -36,7 +42,7 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
     }
 
     fun nextQuestion(totalQuestions: Int) {
-        if (_currentIndex.value < totalQuestions - 1) {
+        if (_currentIndex.value < (totalQuestions - 1)) {
             _currentIndex.value += 1
         }
     }
@@ -48,6 +54,21 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
     }
 
     fun selectOption(questionIndex: Int, optionIndex: Int) {
+        if (_userSelections.value.containsKey(questionIndex)) return
+
+        val response = _quizResponse.value
+        if (response is Result.Success) {
+            val correctIndex = response.data[questionIndex].correctOptionIndex
+            if (optionIndex == correctIndex) {
+                _streak.value += 1
+                if (_streak.value > _bestStreak.value) {
+                    _bestStreak.value = _streak.value
+                }
+            } else {
+                _streak.value = 0
+            }
+        }
+
         val currentSelections = _userSelections.value.toMutableMap()
         currentSelections[questionIndex] = optionIndex
         _userSelections.value = currentSelections
