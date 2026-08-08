@@ -31,9 +31,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myQuizApp.R
 import com.myQuizApp.ui.theme.SuccessGreen
 import com.myQuizApp.utils.Result
 
@@ -68,7 +70,7 @@ fun ResultsScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Quiz Completed!",
+            text = stringResource(R.string.quiz_completed),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
@@ -85,13 +87,13 @@ fun ResultsScreen(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "$scorePercentage%",
+                    text = stringResource(R.string.score_value, scorePercentage),
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "Score",
+                    text = stringResource(R.string.score_label),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
@@ -110,15 +112,18 @@ fun ResultsScreen(
             )
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                ResultRowItem(label = "Total Questions", value = totalQuestions.toString())
                 ResultRowItem(
-                    label = "Correct Answers",
+                    label = stringResource(R.string.total_questions),
+                    value = totalQuestions.toString()
+                )
+                ResultRowItem(
+                    label = stringResource(R.string.correct_answers),
                     value = correctAnswers.toString(),
                     valueColor = SuccessGreen
                 )
                 ResultRowItem(
-                    label = "Longest Streak",
-                    value = "$bestStreak 🔥",
+                    label = stringResource(R.string.longest_streak),
+                    value = stringResource(R.string.longest_streak_value, bestStreak),
                     valueColor = Color(0xFFFF9800)
                 )
             }
@@ -136,7 +141,9 @@ fun ResultsScreen(
         ) {
             Icon(Icons.Default.Refresh, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Restart Quiz", style = MaterialTheme.typography.titleMedium)
+            Text(
+                stringResource(R.string.restart_quiz), style = MaterialTheme.typography.titleMedium
+            )
         }
     }
 }

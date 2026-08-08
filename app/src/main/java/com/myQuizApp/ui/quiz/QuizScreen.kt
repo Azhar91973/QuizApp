@@ -10,22 +10,43 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myQuizApp.R
 import com.myQuizApp.data.model.QuizQuestionModel
 import com.myQuizApp.ui.theme.SuccessGreen
 import com.myQuizApp.utils.Result
@@ -77,16 +98,18 @@ fun QuizScreen(
                         },
                         onNext = { viewModel.nextQuestion() },
                         onPrevious = { viewModel.previousQuestion() },
-                        onSkip = { viewModel.skipQuestion() }
-                    )
+                        onSkip = { viewModel.skipQuestion() })
                 } else {
-                    Text("No questions available", modifier = Modifier.align(Alignment.Center))
+                    Text(
+                        stringResource(R.string.no_questions_available),
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
             }
 
             is Result.Error -> {
                 Text(
-                    text = "Error: ${result.message}",
+                    text = stringResource(R.string.error_message, result.message),
                     modifier = Modifier.align(Alignment.Center),
                     color = MaterialTheme.colorScheme.error
                 )
@@ -104,20 +127,17 @@ fun StreakBadge(streak: Int) {
         initialValue = 1f,
         targetValue = if (isOnFire) 1.2f else 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(500, easing = LinearEasing), repeatMode = RepeatMode.Reverse
         ),
         label = "scale"
     )
 
     val fireColor by animateColorAsState(
-        targetValue = if (isOnFire) Color(0xFFFF9800) else Color.Gray,
-        label = "fireColor"
+        targetValue = if (isOnFire) Color(0xFFFF9800) else Color.Gray, label = "fireColor"
     )
 
     Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+        verticalAlignment = Alignment.CenterVertically, modifier = Modifier
             .background(
                 color = if (isOnFire) Color(0xFFFF9800).copy(alpha = 0.1f) else Color.Transparent,
                 shape = RoundedCornerShape(16.dp)
@@ -126,7 +146,7 @@ fun StreakBadge(streak: Int) {
     ) {
         Icon(
             imageVector = Icons.Default.LocalFireDepartment,
-            contentDescription = "Streak",
+            contentDescription = stringResource(R.string.streak_content_description),
             tint = fireColor,
             modifier = Modifier
                 .size(if (isOnFire) 24.dp else 20.dp)
@@ -143,7 +163,7 @@ fun StreakBadge(streak: Int) {
         }
         if (isOnFire) {
             Text(
-                text = " ON FIRE!",
+                text = stringResource(R.string.on_fire),
                 color = Color(0xFFFF9800),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.ExtraBold,
@@ -179,7 +199,7 @@ fun QuizContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Question: ${currentIndex + 1}/$totalQuestions",
+                text = stringResource(R.string.question_progress, currentIndex + 1, totalQuestions),
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold
@@ -231,16 +251,14 @@ fun QuizContent(
         ) {
             // Previous Button: Low priority
             TextButton(
-                onClick = onPrevious,
-                enabled = currentIndex > 0,
-                modifier = Modifier.height(48.dp)
+                onClick = onPrevious, enabled = currentIndex > 0, modifier = Modifier.height(48.dp)
             ) {
-                Text("Previous", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.previous), style = MaterialTheme.typography.labelLarge)
             }
 
             // Dynamic Right Button: Skip -> Next -> Finish
             val isLast = currentIndex == (totalQuestions - 1)
-            
+
             if (selectedOption == null) {
                 // User hasn't answered yet: Show Skip
                 OutlinedButton(
@@ -249,7 +267,10 @@ fun QuizContent(
                     modifier = Modifier.height(44.dp),
                     contentPadding = PaddingValues(horizontal = 24.dp)
                 ) {
-                    Text(if (isLast) "Finish" else "Skip", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        if (isLast) stringResource(R.string.finish) else stringResource(R.string.skip),
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
             } else {
                 // User has answered: Show Next (to bypass the 2s timer)
@@ -259,7 +280,10 @@ fun QuizContent(
                     modifier = Modifier.height(44.dp),
                     contentPadding = PaddingValues(horizontal = 24.dp)
                 ) {
-                    Text(if (isLast) "Finish" else "Next", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        if (isLast) stringResource(R.string.finish) else stringResource(R.string.next),
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
             }
         }
@@ -272,9 +296,7 @@ enum class OptionStatus {
 
 @Composable
 fun OptionItem(
-    text: String,
-    status: OptionStatus,
-    onClick: () -> Unit
+    text: String, status: OptionStatus, onClick: () -> Unit
 ) {
     val backgroundColor = when (status) {
         OptionStatus.Normal -> MaterialTheme.colorScheme.surface

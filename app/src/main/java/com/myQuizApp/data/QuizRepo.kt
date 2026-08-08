@@ -1,11 +1,16 @@
 package com.myQuizApp.data
 
+import android.content.Context
+import com.myQuizApp.R
 import com.myQuizApp.data.api.QuizApi
 import com.myQuizApp.data.model.QuizQuestionModel
 import com.myQuizApp.utils.Result
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
-class QuizRepo @Inject constructor(val quizApi: QuizApi) {
+class QuizRepo @Inject constructor(
+    val quizApi: QuizApi, @ApplicationContext private val context: Context
+) {
 
     suspend fun getQuiz(): Result<List<QuizQuestionModel>> {
         return try {
@@ -13,10 +18,10 @@ class QuizRepo @Inject constructor(val quizApi: QuizApi) {
             if (quizResponse.isSuccessful && quizResponse.body() != null) {
                 Result.Success(quizResponse.body()!!)
             } else {
-                Result.Error("No Quiz Available pls try again")
+                Result.Error(context.getString(R.string.no_quiz_available))
             }
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Something went wrong pls try again")
+            Result.Error(e.message ?: context.getString(R.string.something_went_wrong))
         }
     }
 }

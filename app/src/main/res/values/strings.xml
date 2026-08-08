@@ -1,3 +1,22 @@
 <resources>
-    <string name="app_name">My Application</string>
+    <string name="app_name">Quiz app</string>
+    <string name="no_questions_available">No questions available</string>
+    <string name="error_message">Error: %1$s</string>
+    <string name="streak_content_description">Streak</string>
+    <string name="on_fire"> ON FIRE!</string>
+    <string name="question_progress">Question: %1$d/%2$d</string>
+    <string name="skip">Skip</string>
+    <string name="next">Next</string>
+    <string name="finish">Finish</string>
+    <string name="previous">Previous</string>
+    <string name="quiz_completed">Quiz Completed!</string>
+    <string name="score_label">Score</string>
+    <string name="score_value">%1$d%%</string>
+    <string name="total_questions">Total Questions</string>
+    <string name="correct_answers">Correct Answers</string>
+    <string name="longest_streak">Longest Streak</string>
+    <string name="longest_streak_value">%1$d 🔥</string>
+    <string name="restart_quiz">Restart Quiz</string>
+    <string name="no_quiz_available">No Quiz Available pls try again</string>
+    <string name="something_went_wrong">Something went wrong pls try again</string>
 </resources>
