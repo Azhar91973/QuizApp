@@ -13,6 +13,7 @@ val TextPrimary = Color(0xFF000000)
 val TextSecondary = Color(0xFF757575)
 
 val ErrorRed = Color(0xFFB71C1C)
+val SuccessGreen = Color(0xFF2E7D32)
 
 // Material 3 defaults for fallback
 val Purple80 = Color(0xFFD0BCFF)

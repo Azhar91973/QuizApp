@@ -3,12 +3,29 @@ package com.myQuizApp.ui.quiz
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -17,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myQuizApp.data.model.QuizQuestionModel
+import com.myQuizApp.ui.theme.SuccessGreen
 import com.myQuizApp.utils.Result
 
 @Composable
@@ -113,9 +131,20 @@ fun QuizContent(
 
         Column(modifier = Modifier.weight(1f)) {
             question.options?.forEachIndexed { index, option ->
-                val isSelected = selectedOption == index
+                val isAnswered = selectedOption != null
+                val correctIndex = question.correctOptionIndex
+
+                val optionStatus = when {
+                    !isAnswered -> OptionStatus.Normal
+                    index == correctIndex -> OptionStatus.Correct
+                    index == selectedOption -> OptionStatus.Incorrect
+                    else -> OptionStatus.Normal
+                }
+
                 OptionItem(
-                    text = option, isSelected = isSelected, onClick = { onOptionSelected(index) })
+                    text = option, status = optionStatus, onClick = {
+                        if (!isAnswered) onOptionSelected(index)
+                    })
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
@@ -168,29 +197,46 @@ fun QuizContent(
     }
 }
 
+enum class OptionStatus {
+    Normal, Correct, Incorrect
+}
+
 @Composable
 fun OptionItem(
-    text: String, isSelected: Boolean, onClick: () -> Unit
+    text: String, status: OptionStatus, onClick: () -> Unit
 ) {
+    val backgroundColor = when (status) {
+        OptionStatus.Normal -> MaterialTheme.colorScheme.surface
+        OptionStatus.Correct -> SuccessGreen.copy(alpha = 0.1f)
+        OptionStatus.Incorrect -> MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+    }
+
+    val borderColor = when (status) {
+        OptionStatus.Normal -> MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+        OptionStatus.Correct -> SuccessGreen
+        OptionStatus.Incorrect -> MaterialTheme.colorScheme.error
+    }
+
+    val contentColor = when (status) {
+        OptionStatus.Normal -> MaterialTheme.colorScheme.onSurface
+        OptionStatus.Correct -> SuccessGreen
+        OptionStatus.Incorrect -> MaterialTheme.colorScheme.error
+    }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(8.dp),
-        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(
-                alpha = 0.5f
-            )
-        )
+        color = backgroundColor,
+        border = BorderStroke(1.dp, borderColor)
     ) {
         Text(
             text = text,
             modifier = Modifier.padding(12.dp),
-            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            color = contentColor,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+            fontWeight = if (status != OptionStatus.Normal) FontWeight.SemiBold else FontWeight.Normal
         )
     }
 }
