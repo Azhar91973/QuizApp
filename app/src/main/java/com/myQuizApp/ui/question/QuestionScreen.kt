@@ -1,4 +1,4 @@
-package com.myQuizApp.ui.quiz
+package com.myQuizApp.ui.question
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
@@ -55,9 +55,14 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun QuizScreen(
     modifier: Modifier = Modifier,
+    questionUrl: String,
     viewModel: QuizViewModel,
     onFinished: () -> Unit,
 ) {
+    LaunchedEffect(questionUrl)
+    {
+        viewModel.loadQuiz(questionUrl)
+    }
     val quizResult by viewModel.quizResponse.collectAsStateWithLifecycle()
     val currentIndex by viewModel.currentIndex.collectAsStateWithLifecycle()
     val userSelections by viewModel.userSelections.collectAsStateWithLifecycle()

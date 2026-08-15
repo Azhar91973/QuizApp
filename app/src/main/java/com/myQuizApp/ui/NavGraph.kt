@@ -1,5 +1,6 @@
 package com.myQuizApp.ui
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -8,12 +9,15 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.myQuizApp.ui.quiz.QuizScreen
-import com.myQuizApp.ui.quiz.QuizViewModel
-import com.myQuizApp.ui.quiz.ResultsScreen
+import com.myQuizApp.ui.question.QuizScreen
+import com.myQuizApp.ui.question.QuizViewModel
+import com.myQuizApp.ui.question.ResultsScreen
+import com.myQuizApp.ui.quizCategory.QuizCategoryScreen
+import com.myQuizApp.ui.quizCategory.QuizCategoryViewModel
 
 sealed class Screen(val route: String) {
-    object Quiz : Screen("quiz")
+    object QuizCategory : Screen("quizCategory")
+    object Quiz : Screen("quiz/{questionUrl}")
     object Results : Screen("results")
 }
 
@@ -24,33 +28,39 @@ fun NavGraph(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Quiz.route,
+        startDestination = Screen.QuizCategory.route,
         modifier = modifier
     ) {
-        composable(Screen.Quiz.route) {
+        composable(Screen.QuizCategory.route) {
+            val viewModel: QuizCategoryViewModel = hiltViewModel()
+            QuizCategoryScreen(viewModel = viewModel) { questionUrl ->
+                navController.navigate("quiz/${Uri.encode(questionUrl)}")
+            }
+        }
+
+        composable(
+            Screen.Quiz.route
+        ) { backStackEntry ->
+            val questionUrl = Uri.decode(backStackEntry.arguments?.getString("questionUrl")) ?: ""
             val viewModel: QuizViewModel = hiltViewModel()
             QuizScreen(
-                viewModel = viewModel,
-                onFinished = {
+                viewModel = viewModel, questionUrl = questionUrl, onFinished = {
                     navController.navigate(Screen.Results.route) {
                         popUpTo(Screen.Quiz.route) { inclusive = false }
                     }
-                }
-            )
+                })
         }
         composable(Screen.Results.route) { backStackEntry ->
             val parentEntry = remember(backStackEntry) {
                 navController.getBackStackEntry(Screen.Quiz.route)
             }
             val viewModel: QuizViewModel = hiltViewModel(parentEntry)
-            
+
             ResultsScreen(
-                viewModel = viewModel,
-                onRestart = {
+                viewModel = viewModel, onRestart = {
                     viewModel.restartQuiz()
                     navController.popBackStack(Screen.Quiz.route, inclusive = false)
-                }
-            )
+                })
         }
     }
 }

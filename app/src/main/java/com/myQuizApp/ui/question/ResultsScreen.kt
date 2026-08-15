@@ -1,4 +1,4 @@
-package com.myQuizApp.ui.quiz
+package com.myQuizApp.ui.question
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

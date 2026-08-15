@@ -1,4 +1,4 @@
-package com.myQuizApp.ui.quiz
+package com.myQuizApp.ui.question
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -44,14 +44,10 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
 
     private var autoAdvanceJob: Job? = null
 
-    init {
-        loadQuiz()
-    }
-
-    fun loadQuiz() {
+    fun loadQuiz(questionUrl:String) {
         viewModelScope.launch {
             _quizResponse.value = Result.Loading
-            _quizResponse.value = quizRepo.getQuiz()
+            _quizResponse.value = quizRepo.getQuiz(questionUrl)
         }
     }
 
