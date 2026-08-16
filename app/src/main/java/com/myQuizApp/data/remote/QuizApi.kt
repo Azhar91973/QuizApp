@@ -1,6 +1,7 @@
 package com.myQuizApp.data.remote
 
 import com.myQuizApp.data.model.QuizQuestionModel
+import com.myQuizApp.data.remote.dto.QuestionsDto
 import com.myQuizApp.data.remote.dto.QuizCategoryDto
 import retrofit2.Response
 import retrofit2.http.GET
@@ -11,7 +12,7 @@ interface QuizApi {
 
 
     @GET
-    suspend fun getQuiz(@Url url: String): Response<List<QuizQuestionModel>>
+    suspend fun getQuestions(@Url url: String): Response<List<QuestionsDto>>
 
 
     @GET("dr-samrat/{id}/raw")

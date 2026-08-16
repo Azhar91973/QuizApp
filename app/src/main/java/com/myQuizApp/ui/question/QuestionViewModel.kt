@@ -3,8 +3,7 @@ package com.myQuizApp.ui.question
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myQuizApp.data.QuizRepo
-import com.myQuizApp.data.model.QuizQuestionModel
-import com.myQuizApp.utils.Result
+import com.myQuizApp.domain.model.Question
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -24,14 +23,8 @@ sealed class QuizEvent {
 @HiltViewModel
 class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewModel() {
 
-    private val _quizResponse = MutableStateFlow<Result<List<QuizQuestionModel>>>(Result.Loading)
-    val quizResponse: StateFlow<Result<List<QuizQuestionModel>>> = _quizResponse.asStateFlow()
-
     private val _currentIndex = MutableStateFlow(0)
     val currentIndex: StateFlow<Int> = _currentIndex.asStateFlow()
-
-    private val _userSelections = MutableStateFlow<Map<Int, Int>>(emptyMap())
-    val userSelections: StateFlow<Map<Int, Int>> = _userSelections.asStateFlow()
 
     private val _streak = MutableStateFlow(0)
     val streak: StateFlow<Int> = _streak.asStateFlow()
@@ -41,23 +34,46 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
 
     private val _events = MutableSharedFlow<QuizEvent>()
     val events: SharedFlow<QuizEvent> = _events.asSharedFlow()
-
     private var autoAdvanceJob: Job? = null
+    private val _questions = MutableStateFlow<List<Question>>(
+        emptyList()
+    )
 
-    fun loadQuiz(questionUrl:String) {
+    val questions: StateFlow<List<Question>> = _questions.asStateFlow()
+
+    fun loadStreak(categoryId: String) {
         viewModelScope.launch {
-            _quizResponse.value = Result.Loading
-            _quizResponse.value = quizRepo.getQuiz(questionUrl)
+            quizRepo.observerStreak(categoryId).collect { streak ->
+                _streak.value = streak
+            }
+        }
+    }
+
+    fun loadQuestions(categoryId: String) {
+
+        viewModelScope.launch {
+            quizRepo.getQuestions(categoryId).collect { result ->
+                _questions.value = result
+            }
+        }
+    }
+
+    fun refreshQuiz(categoryId: String, questionUrl: String) {
+        viewModelScope.launch {
+            quizRepo.refreshQuestions(categoryId, questionUrl)
         }
     }
 
     fun nextQuestion() {
         autoAdvanceJob?.cancel()
-        val questions = (quizResponse.value as? Result.Success)?.data ?: return
+        val questions = questions.value
         if (_currentIndex.value < (questions.size - 1)) {
             _currentIndex.value += 1
         } else {
-            viewModelScope.launch { _events.emit(QuizEvent.FinishQuiz) }
+            viewModelScope.launch {
+                quizRepo.calculateScore(questions[questions.size - 1].categoryId)
+                _events.emit(QuizEvent.FinishQuiz)
+            }
         }
     }
 
@@ -69,7 +85,6 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
     fun restartQuiz() {
         autoAdvanceJob?.cancel()
         _currentIndex.value = 0
-        _userSelections.value = emptyMap()
         _streak.value = 0
         _bestStreak.value = 0
     }
@@ -80,26 +95,10 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
             _currentIndex.value -= 1
         }
     }
+
     fun selectOption(optionIndex: Int) {
         val questionIndex = _currentIndex.value
-        if (_userSelections.value.containsKey(questionIndex)) return
-
-        val response = _quizResponse.value
-        if (response is Result.Success) {
-            val correctIndex = response.data[questionIndex].correctOptionIndex
-            if (optionIndex == correctIndex) {
-                _streak.value += 1
-                if (_streak.value > _bestStreak.value) {
-                    _bestStreak.value = _streak.value
-                }
-            } else {
-                _streak.value = 0
-            }
-        }
-
-        val currentSelections = _userSelections.value.toMutableMap()
-        currentSelections[questionIndex] = optionIndex
-        _userSelections.value = currentSelections
+        updateAnswer(questions.value[questionIndex], optionIndex)
 
         // Auto-advance after 2 seconds
         autoAdvanceJob?.cancel()
@@ -107,5 +106,20 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
             delay(2000)
             nextQuestion()
         }
+    }
+
+    private fun resetStreak(categoryId: String) {
+        viewModelScope.launch {
+            quizRepo.resetStreak(categoryId)
+        }
+    }
+
+    private fun updateAnswer(question: Question, answeredIdx: Int) {
+        viewModelScope.launch {
+            quizRepo.updateAnswer(question.id, question.categoryId, answeredIdx)
+            if (question.correctOptionIndex == answeredIdx) quizRepo.updateStreak(question.categoryId)
+            else resetStreak(question.categoryId)
+        }
+
     }
 }

@@ -10,5 +10,7 @@ data class QuizCategoryEntity(
     val title: String,
     val description: String,
     val questionUrl: String,
+    val streak: Int,
+    val longestStreak: Int,
     val attempted: Boolean
 )

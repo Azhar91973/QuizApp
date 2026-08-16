@@ -45,16 +45,17 @@ fun ResultsScreen(
     onRestart: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
-    val quizResult by viewModel.quizResponse.collectAsStateWithLifecycle()
-    val userSelections by viewModel.userSelections.collectAsStateWithLifecycle()
+    val quizResult by viewModel.questions.collectAsStateWithLifecycle()
+//    val userSelections by viewModel.userSelections.collectAsStateWithLifecycle()
     val bestStreak by viewModel.bestStreak.collectAsStateWithLifecycle()
 
-    val questions = (quizResult as? Result.Success)?.data ?: emptyList()
+    val questions = quizResult
     val totalQuestions = questions.size
 
-    val correctAnswers = userSelections.entries.count { (index, selection) ->
-        (index < questions.size) && (selection == questions[index].correctOptionIndex)
-    }
+    val correctAnswers =0
+//        userSelections.entries.count { (index, selection) ->
+//        (index < questions.size) && (selection == questions[index].correctOptionIndex)
+//    }
 
     val scorePercentage = if (totalQuestions > 0) {
         (correctAnswers.toFloat() / totalQuestions * 100).toInt()

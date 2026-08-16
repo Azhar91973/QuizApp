@@ -17,7 +17,7 @@ import com.myQuizApp.ui.quizCategory.QuizCategoryViewModel
 
 sealed class Screen(val route: String) {
     object QuizCategory : Screen("quizCategory")
-    object Quiz : Screen("quiz/{questionUrl}")
+    object Quiz : Screen("quiz/{categoryId}/{questionUrl}")
     object Results : Screen("results")
 }
 
@@ -33,18 +33,23 @@ fun NavGraph(
     ) {
         composable(Screen.QuizCategory.route) {
             val viewModel: QuizCategoryViewModel = hiltViewModel()
-            QuizCategoryScreen(viewModel = viewModel) { questionUrl ->
-                navController.navigate("quiz/${Uri.encode(questionUrl)}")
+            QuizCategoryScreen(viewModel = viewModel) { categoryId, questionUrl ->
+                navController.navigate("quiz/${Uri.encode(categoryId)}/${Uri.encode(questionUrl)}")
             }
         }
 
         composable(
             Screen.Quiz.route
         ) { backStackEntry ->
+
+            val categoryId = Uri.decode(backStackEntry.arguments?.getString("categoryId")) ?: ""
             val questionUrl = Uri.decode(backStackEntry.arguments?.getString("questionUrl")) ?: ""
             val viewModel: QuizViewModel = hiltViewModel()
             QuizScreen(
-                viewModel = viewModel, questionUrl = questionUrl, onFinished = {
+                viewModel = viewModel,
+                categoryId = categoryId,
+                questionUrl = questionUrl,
+                onFinished = {
                     navController.navigate(Screen.Results.route) {
                         popUpTo(Screen.Quiz.route) { inclusive = false }
                     }

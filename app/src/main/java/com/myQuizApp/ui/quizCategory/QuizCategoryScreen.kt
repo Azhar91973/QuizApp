@@ -24,16 +24,16 @@ import com.myQuizApp.BuildConfig
 @Composable
 fun QuizCategoryScreen(
     viewModel: QuizCategoryViewModel = hiltViewModel(),
-    openQuizScreen: (questionUrl: String) -> Unit
+    openQuizScreen: (categoryId: String, questionUrl: String) -> Unit
 ) {
     val quizCategories = viewModel.quizCategories.collectAsStateWithLifecycle()
 
     LazyColumn() {
         items(quizCategories.value) { category ->
             QuizCategoryCard(
-                category.title, category.description, category.questionUrl
-            ) { questionUrl ->
-                openQuizScreen(questionUrl.parseUrl())
+                category.title, category.description, category.questionUrl, category.id
+            ) { categoryId, questionUrl ->
+                openQuizScreen(categoryId, questionUrl.parseUrl())
             }
         }
 
@@ -41,8 +41,7 @@ fun QuizCategoryScreen(
 
 }
 
-fun String.parseUrl(): String
-{
+fun String.parseUrl(): String {
     val baseUrl = BuildConfig.BASE_URL
     val url = this.removePrefix(baseUrl)
     Log.d("ParseUrl", "parseUrl: $url")
@@ -51,7 +50,11 @@ fun String.parseUrl(): String
 
 @Composable
 fun QuizCategoryCard(
-    title: String, description: String, questionsUrl: String, open: (questionUrl: String) -> Unit
+    title: String,
+    description: String,
+    questionsUrl: String,
+    categoryId: String,
+    open: (categoryId: String, questionUrl: String) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -60,7 +63,7 @@ fun QuizCategoryCard(
             .border(2.dp, shape = RectangleShape, color = Color.Red)
             .clickable(
                 onClick = {
-                    open(questionsUrl)
+                    open(categoryId, questionsUrl)
                 })
     ) {
         Text(text = title)
@@ -79,7 +82,9 @@ private fun QuizCategoryCardPreview() {
     )
     LazyColumn() {
         items(categoryList) { category ->
-            QuizCategoryCard(category.first, category.second, "") {
+            QuizCategoryCard(
+                category.first, category.second, categoryId = "", questionsUrl = ""
+            ) { categoryId, questionUrl ->
 
             }
 

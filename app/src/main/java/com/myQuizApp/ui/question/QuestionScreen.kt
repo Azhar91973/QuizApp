@@ -27,7 +27,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -47,26 +46,30 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myQuizApp.R
-import com.myQuizApp.data.model.QuizQuestionModel
+import com.myQuizApp.domain.model.Question
 import com.myQuizApp.ui.theme.SuccessGreen
-import com.myQuizApp.utils.Result
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun QuizScreen(
     modifier: Modifier = Modifier,
+    categoryId: String,
     questionUrl: String,
     viewModel: QuizViewModel,
     onFinished: () -> Unit,
 ) {
-    LaunchedEffect(questionUrl)
-    {
-        viewModel.loadQuiz(questionUrl)
+    LaunchedEffect(questionUrl) {
+        viewModel.refreshQuiz(categoryId, questionUrl)
     }
-    val quizResult by viewModel.quizResponse.collectAsStateWithLifecycle()
-    val currentIndex by viewModel.currentIndex.collectAsStateWithLifecycle()
-    val userSelections by viewModel.userSelections.collectAsStateWithLifecycle()
+    LaunchedEffect(categoryId) {
+        viewModel.loadStreak(categoryId)
+    }
+    LaunchedEffect(questionUrl) {
+        viewModel.loadQuestions(categoryId)
+    }
+    val quizResult by viewModel.questions.collectAsStateWithLifecycle()
     val streak by viewModel.streak.collectAsStateWithLifecycle()
+    val currentIndex by viewModel.currentIndex.collectAsStateWithLifecycle()
 
     // Handle ViewModel events
     LaunchedEffect(viewModel.events) {
@@ -82,43 +85,25 @@ fun QuizScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        when (val result = quizResult) {
-            is Result.Loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(strokeWidth = 2.dp)
-                }
-            }
-
-            is Result.Success -> {
-                val questions = result.data
-                if (questions.isNotEmpty()) {
-                    QuizContent(
-                        question = questions[currentIndex],
-                        currentIndex = currentIndex,
-                        totalQuestions = questions.size,
-                        selectedOption = userSelections[currentIndex],
-                        streak = streak,
-                        onOptionSelected = { optionIndex ->
-                            viewModel.selectOption(optionIndex)
-                        },
-                        onNext = { viewModel.nextQuestion() },
-                        onPrevious = { viewModel.previousQuestion() },
-                        onSkip = { viewModel.skipQuestion() })
-                } else {
-                    Text(
-                        stringResource(R.string.no_questions_available),
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-            }
-
-            is Result.Error -> {
-                Text(
-                    text = stringResource(R.string.error_message, result.message),
-                    modifier = Modifier.align(Alignment.Center),
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
+        if (quizResult.isNotEmpty()) {
+            val currentQuestion = quizResult[currentIndex]
+            QuizContent(
+                question = currentQuestion,
+                currentIndex = currentIndex,
+                totalQuestions = quizResult.size,
+                selectedOption = currentQuestion.answeredIdx,
+                streak = streak,
+                onOptionSelected = { optionIndex ->
+                    viewModel.selectOption(optionIndex)
+                },
+                onNext = { viewModel.nextQuestion() },
+                onPrevious = { viewModel.previousQuestion() },
+                onSkip = { viewModel.skipQuestion() })
+        } else {
+            Text(
+                stringResource(R.string.no_questions_available),
+                modifier = Modifier.align(Alignment.Center)
+            )
         }
     }
 }
@@ -180,7 +165,7 @@ fun StreakBadge(streak: Int) {
 
 @Composable
 fun QuizContent(
-    question: QuizQuestionModel,
+    question: Question,
     currentIndex: Int,
     totalQuestions: Int,
     selectedOption: Int?,
@@ -226,7 +211,7 @@ fun QuizContent(
 
         Column(modifier = Modifier.fillMaxWidth()) {
             question.options?.forEachIndexed { index, option ->
-                val isAnswered = selectedOption != null
+                val isAnswered = selectedOption != -1
                 val correctIndex = question.correctOptionIndex
 
                 val optionStatus = when {

@@ -2,19 +2,21 @@ package com.myQuizApp.data
 
 import android.content.Context
 import android.util.Log
-import com.myQuizApp.R
 import com.myQuizApp.data.local.dao.QuestionsDao
 import com.myQuizApp.data.local.dao.QuizCategoryDao
+import com.myQuizApp.data.local.entity.QuestionsEntity
 import com.myQuizApp.data.local.entity.QuizCategoryEntity
-import com.myQuizApp.data.model.QuizQuestionModel
 import com.myQuizApp.data.remote.QuizApi
+import com.myQuizApp.data.remote.dto.QuestionsDto
 import com.myQuizApp.data.remote.dto.QuizCategoryDto
+import com.myQuizApp.domain.model.Question
 import com.myQuizApp.domain.model.QuizCategory
-import com.myQuizApp.utils.Result
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
+import kotlin.math.max
+import kotlin.math.roundToInt
 
 class QuizRepo @Inject constructor(
     private val quizApi: QuizApi,
@@ -22,17 +24,89 @@ class QuizRepo @Inject constructor(
     private val questionsDao: QuestionsDao,
     @ApplicationContext private val context: Context
 ) {
+    fun getQuestions(categoryId: String): Flow<List<Question>> {
+        return questionsDao.getQuestionsByCategoryId(categoryId).map { entries ->
+            entries.map { entity ->
+                entity.toDomain()
+            }
+        }
+    }
 
-    suspend fun getQuiz(questionUrl: String): Result<List<QuizQuestionModel>> {
-        return try {
-            val quizResponse = quizApi.getQuiz(questionUrl)
-            if (quizResponse.isSuccessful && quizResponse.body() != null) {
-                Result.Success(quizResponse.body()!!)
-            } else {
-                Result.Error(context.getString(R.string.no_quiz_available))
+    fun observerStreak(categoryId: String): Flow<Int> {
+        return quizCategoryDao.observeStreak(categoryId)
+    }
+
+    suspend fun updateAnswer(
+        questionId: Int, categoryId: String, answeredIdx: Int
+    ) {
+        questionsDao.updateAnswer(
+            questionId = questionId, categoryId = categoryId, answeredIdx = answeredIdx
+        )
+    }
+
+    suspend fun getCurrentScore(categoryId: String): Int {
+        return quizCategoryDao.getScore(categoryId)
+    }
+
+    suspend fun getStreak(categoryId: String): Int {
+        return quizCategoryDao.getStreak(categoryId)
+    }
+
+    suspend fun resetStreak(categoryId: String) {
+        quizCategoryDao.resetStreak(categoryId)
+    }
+
+    suspend fun updateStreak(
+        categoryId: String
+    ) {
+        val currentStreak = getStreak(categoryId)
+        val newStreak = currentStreak + 1
+        val longestStreak = quizCategoryDao.getLongestStreak(categoryId)
+        quizCategoryDao.updateStreak(
+            categoryId = categoryId, streak = newStreak, max(newStreak, longestStreak)
+        )
+    }
+
+    suspend fun calculateScore(
+        categoryId: String
+    ) {
+        val correctAnswers = questionsDao.getCorrectAnswers(categoryId)
+        val totalQuestion = questionsDao.getTotalQuestions(categoryId)
+
+        if (totalQuestion == 0) return
+
+        val score = ((correctAnswers.toDouble() / totalQuestion) * 10).roundToInt()
+        updateScore(categoryId, score)
+    }
+
+    suspend fun updateScore(
+        categoryId: String, score: Int
+    ) {
+        quizCategoryDao.updateScore(categoryId, score)
+    }
+
+    suspend fun refreshQuestions(
+        categoryId: String, questionUrl: String
+    ) {
+        Log.d("DebugQuestions", "refreshQuestions: $categoryId")
+        try {
+            val quizResponse = quizApi.getQuestions(questionUrl)
+            if (quizResponse.isSuccessful) {
+                val questions = quizResponse.body() ?: return
+                val existingQuestions = questionsDao.getQuestionsByCategory(categoryId)
+                Log.d("QuizRepo", "refreshQuestions: $categoryId $existingQuestions")
+                val entities = questions.map { dto ->
+                    dto.toEntity(
+                        categoryId = categoryId,
+                        existing = if (existingQuestions.isNotEmpty()) existingQuestions[dto.id - 1] else null
+                    )
+                }
+                questionsDao.insertQuestions(entities)
             }
         } catch (e: Exception) {
-            Result.Error(e.message ?: context.getString(R.string.something_went_wrong))
+            Log.d(
+                "QuizRepo", "refreshQuestions: ${e.message}"
+            )
         }
     }
 
@@ -49,15 +123,42 @@ class QuizRepo @Inject constructor(
             val quizCategoriesResponse =
                 quizApi.getQuizCategories("ee986f16da9d8303c1acfd364ece22c5")
             if (quizCategoriesResponse.isSuccessful && quizCategoriesResponse.body() != null) {
+                val existingQuizCategory =
+                    quizCategoryDao.getExistingCategories().associateBy { it.id }
+                Log.d("QuizRepo", "refreshQuizCategories: $existingQuizCategory")
                 quizCategoryDao.insertCategories(
                     quizCategoriesResponse.body()!!.map { quizCategory ->
-                        val existing = quizCategoryDao.getCategoryById(quizCategory.id)
-                        quizCategory.toEntity(existing)
+                        quizCategory.toEntity(existingQuizCategory[quizCategory.id])
                     })
             }
         } catch (e: Exception) {
             Log.d("QuizRepo", "refreshQuizCategories: ${e.message}")
         }
+    }
+
+    fun QuestionsDto.toEntity(
+        categoryId: String, existing: QuestionsEntity?
+    ): QuestionsEntity {
+        return QuestionsEntity(
+            id = id,
+            categoryId = categoryId,
+            question = question,
+            answeredIdx = existing?.answeredIdx ?: -1,
+            correctOptionIndex = correctOptionIndex,
+            options = options
+        )
+    }
+
+    fun QuestionsEntity.toDomain(
+    ): Question {
+        return Question(
+            id = id,
+            categoryId = categoryId,
+            question = question,
+            answeredIdx = answeredIdx,
+            correctOptionIndex = correctOptionIndex,
+            options = options
+        )
     }
 
     fun QuizCategoryDto.toEntity(
@@ -69,6 +170,8 @@ class QuizRepo @Inject constructor(
             description = description,
             questionUrl = questionsUrl,
             currentScore = existing?.currentScore ?: 0,
+            streak = existing?.streak ?: 0,
+            longestStreak = existing?.longestStreak ?: 0,
             attempted = existing?.attempted ?: false
         )
     }
