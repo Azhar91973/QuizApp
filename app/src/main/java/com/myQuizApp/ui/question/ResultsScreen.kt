@@ -1,5 +1,6 @@
 package com.myQuizApp.ui.question
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -34,6 +35,10 @@ fun ResultsScreen(
     onRestart: () -> Unit,
     onBackToCategories: () -> Unit
 ) {
+    BackHandler {
+        onBackToCategories()
+    }
+
     val scrollState = rememberScrollState()
     val questions by viewModel.questions.collectAsStateWithLifecycle()
     val bestStreak by viewModel.bestStreak.collectAsStateWithLifecycle()

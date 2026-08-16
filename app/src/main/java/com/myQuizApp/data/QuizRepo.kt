@@ -56,6 +56,12 @@ class QuizRepo @Inject constructor(
         quizCategoryDao.resetStreak(categoryId)
     }
 
+    suspend fun resetQuiz(categoryId: String) {
+        questionsDao.resetAnswers(categoryId)
+        quizCategoryDao.updateScore(categoryId, 0)
+        quizCategoryDao.resetStreak(categoryId)
+    }
+
     suspend fun updateStreak(
         categoryId: String
     ) {

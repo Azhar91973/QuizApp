@@ -54,4 +54,7 @@ interface QuestionsDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertQuestions(questions: List<QuestionsEntity>)
+
+    @Query("UPDATE questions SET answeredIdx = -1 WHERE categoryId = :categoryId")
+    suspend fun resetAnswers(categoryId: String)
 }

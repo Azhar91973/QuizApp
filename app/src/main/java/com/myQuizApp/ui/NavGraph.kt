@@ -59,12 +59,13 @@ fun NavGraph(
             val parentEntry = remember(backStackEntry) {
                 navController.getBackStackEntry(Screen.Quiz.route)
             }
+            val categoryId = Uri.decode(parentEntry.arguments?.getString("categoryId")) ?: ""
             val viewModel: QuizViewModel = hiltViewModel(parentEntry)
 
             ResultsScreen(
                 viewModel = viewModel,
                 onRestart = {
-                    viewModel.restartQuiz()
+                    viewModel.restartQuiz(categoryId)
                     navController.popBackStack(Screen.Quiz.route, inclusive = false)
                 },
                 onBackToCategories = {

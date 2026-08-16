@@ -56,7 +56,9 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
             // Load category info for results
             launch {
                 quizRepo.getQuizCategories().collect { categories ->
-                    _category.value = categories.find { it.id == categoryId }
+                    val category = categories.find { it.id == categoryId }
+                    _category.value = category
+                    _bestStreak.value = category?.longestStreak ?: 0
                 }
             }
 
@@ -84,11 +86,14 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
         nextQuestion()
     }
 
-    fun restartQuiz() {
+    fun restartQuiz(categoryId: String) {
         autoAdvanceJob?.cancel()
         _currentIndex.value = 0
         _streak.value = 0
-        _bestStreak.value = 0
+        // Best streak is kept as high score
+        viewModelScope.launch {
+            quizRepo.resetQuiz(categoryId)
+        }
     }
 
     fun previousQuestion() {
