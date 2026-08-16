@@ -18,7 +18,14 @@ class QuizCategoryViewModel @Inject constructor(private val quizRepo: QuizRepo) 
     )
 
     init {
-        refreshQuizCategory()
+        viewModelScope.launch {
+            // Only refresh if we don't have categories in DB
+            quizCategories.collect { 
+                if (it.isEmpty()) {
+                    refreshQuizCategory()
+                }
+            }
+        }
     }
 
     private fun refreshQuizCategory() {

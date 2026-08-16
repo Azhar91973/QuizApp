@@ -62,10 +62,15 @@ fun NavGraph(
             val viewModel: QuizViewModel = hiltViewModel(parentEntry)
 
             ResultsScreen(
-                viewModel = viewModel, onRestart = {
+                viewModel = viewModel,
+                onRestart = {
                     viewModel.restartQuiz()
                     navController.popBackStack(Screen.Quiz.route, inclusive = false)
-                })
+                },
+                onBackToCategories = {
+                    navController.popBackStack(Screen.QuizCategory.route, inclusive = false)
+                }
+            )
         }
     }
 }

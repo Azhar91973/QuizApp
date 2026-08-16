@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class QuizCategoryEntity(
     @PrimaryKey val id: String,
     val currentScore: Int,
+    val totalQuestions: Int,
     val title: String,
     val description: String,
     val questionUrl: String,

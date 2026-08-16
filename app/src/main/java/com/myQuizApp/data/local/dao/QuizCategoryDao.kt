@@ -30,7 +30,19 @@ interface QuizCategoryDao {
     @Query(
         """
         UPDATE quizCategory
-        SET currentScore= :score
+        SET totalQuestions = :totalQuestions
+        WHERE id = :categoryId
+    """
+    )
+    suspend fun updateTotalQuestions(
+        categoryId: String, totalQuestions: Int
+    )
+
+    @Query(
+        """
+        UPDATE quizCategory
+        SET currentScore= :score,
+            attempted = 1
         WHERE id = :categoryId
     """
     )

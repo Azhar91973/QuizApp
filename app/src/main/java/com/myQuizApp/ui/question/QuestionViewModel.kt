@@ -35,32 +35,34 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
     private val _events = MutableSharedFlow<QuizEvent>()
     val events: SharedFlow<QuizEvent> = _events.asSharedFlow()
     private var autoAdvanceJob: Job? = null
-    private val _questions = MutableStateFlow<List<Question>>(
-        emptyList()
-    )
-
+    private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
 
-    fun loadStreak(categoryId: String) {
+    private val _category = MutableStateFlow<com.myQuizApp.domain.model.QuizCategory?>(null)
+    val category: StateFlow<com.myQuizApp.domain.model.QuizCategory?> = _category.asStateFlow()
+
+    fun initializeQuiz(categoryId: String, questionUrl: String) {
         viewModelScope.launch {
-            quizRepo.observerStreak(categoryId).collect { streak ->
-                _streak.value = streak
+            // Load from DB first
+            launch {
+                quizRepo.getQuestions(categoryId).collect { 
+                    _questions.value = it
+                    if (it.isEmpty()) {
+                        quizRepo.refreshQuestions(categoryId, questionUrl)
+                    }
+                }
             }
-        }
-    }
-
-    fun loadQuestions(categoryId: String) {
-
-        viewModelScope.launch {
-            quizRepo.getQuestions(categoryId).collect { result ->
-                _questions.value = result
+            
+            // Load category info for results
+            launch {
+                quizRepo.getQuizCategories().collect { categories ->
+                    _category.value = categories.find { it.id == categoryId }
+                }
             }
-        }
-    }
 
-    fun refreshQuiz(categoryId: String, questionUrl: String) {
-        viewModelScope.launch {
-            quizRepo.refreshQuestions(categoryId, questionUrl)
+            launch {
+                quizRepo.observerStreak(categoryId).collect { _streak.value = it }
+            }
         }
     }
 

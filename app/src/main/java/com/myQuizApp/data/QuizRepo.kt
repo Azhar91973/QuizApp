@@ -76,7 +76,14 @@ class QuizRepo @Inject constructor(
         if (totalQuestion == 0) return
 
         val score = ((correctAnswers.toDouble() / totalQuestion) * 10).roundToInt()
-        updateScore(categoryId, score)
+        
+        val currentBest = quizCategoryDao.getScore(categoryId)
+        if (score > currentBest) {
+            updateScore(categoryId, score)
+        } else {
+            // Even if not a high score, mark as attempted
+            quizCategoryDao.insertCategories(listOf(quizCategoryDao.getCategoryById(categoryId).copy(attempted = true)))
+        }
     }
 
     suspend fun updateScore(
@@ -102,6 +109,7 @@ class QuizRepo @Inject constructor(
                     )
                 }
                 questionsDao.insertQuestions(entities)
+                quizCategoryDao.updateTotalQuestions(categoryId, questions.size)
             }
         } catch (e: Exception) {
             Log.d(
@@ -170,6 +178,7 @@ class QuizRepo @Inject constructor(
             description = description,
             questionUrl = questionsUrl,
             currentScore = existing?.currentScore ?: 0,
+            totalQuestions = existing?.totalQuestions ?: 0,
             streak = existing?.streak ?: 0,
             longestStreak = existing?.longestStreak ?: 0,
             attempted = existing?.attempted ?: false
@@ -184,7 +193,9 @@ class QuizRepo @Inject constructor(
             description = description,
             questionUrl = questionUrl,
             currentScore = currentScore,
-            attempted = attempted
+            totalQuestions = totalQuestions,
+            attempted = attempted,
+            longestStreak = longestStreak
         )
     }
 }

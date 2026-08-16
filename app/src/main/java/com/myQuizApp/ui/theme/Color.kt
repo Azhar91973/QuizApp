@@ -6,7 +6,7 @@ val BluePrimary = Color(0xFF0D47A1)
 val BlueSecondary = Color(0xFF1976D2)
 val BlueTertiary = Color(0xFF42A5F5)
 
-val BackgroundLight = Color(0xFFF8F9FA)
+val BackgroundLight = Color(0xFFF0F2F5)
 val SurfaceLight = Color(0xFFFFFFFF)
 
 val TextPrimary = Color(0xFF000000)
@@ -14,6 +14,13 @@ val TextSecondary = Color(0xFF757575)
 
 val ErrorRed = Color(0xFFB71C1C)
 val SuccessGreen = Color(0xFF2E7D32)
+val StreakOrange = Color(0xFFFF9800)
+val StreakOrangeDark = Color(0xFFE65100)
+
+val IconBoxLight = Color(0xFFE3F2FD)
+val IconTextLight = Color(0xFF1565C0)
+val IconBoxDark = Color(0xFF1A237E)
+val IconTextDark = Color(0xFFE3F2FD)
 
 // Material 3 defaults for fallback
 val Purple80 = Color(0xFFD0BCFF)

@@ -27,7 +27,9 @@ private val DarkColorScheme = darkColorScheme(
     onTertiary = Color.Black,
     onBackground = Color.White,
     onSurface = Color.White,
-    error = ErrorRed
+    error = ErrorRed,
+    secondaryContainer = IconBoxDark,
+    onSecondaryContainer = IconTextDark
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -42,7 +44,9 @@ private val LightColorScheme = lightColorScheme(
     onBackground = TextPrimary,
     onSurface = TextPrimary,
     error = ErrorRed,
-    outline = Color(0xFFE0E0E0)
+    outline = Color(0xFFE0E0E0),
+    secondaryContainer = IconBoxLight,
+    onSecondaryContainer = IconTextLight
 )
 
 @Composable
