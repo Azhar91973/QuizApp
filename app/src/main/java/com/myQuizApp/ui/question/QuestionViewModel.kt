@@ -40,6 +40,11 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
 
     fun initializeQuiz(categoryId: String, questionUrl: String) {
         viewModelScope.launch {
+            // Get the current category status first to distinguish between Review and Resume
+            val categories = quizRepo.getQuizCategories().first()
+            val categoryInfo = categories.find { it.id == categoryId }
+            val isReviewMode = categoryInfo?.attempted ?: false
+
             quizRepo.getQuestions(categoryId).collect { questions ->
                 if (questions.isEmpty()) {
                     _questionsState.value = Result.Loading
@@ -49,8 +54,10 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
                     }
                 } else {
                     _questionsState.value = Result.Success(questions)
-                    // If opening the quiz and not already navigated, jump to the last answered question
-                    if (_currentIndex.value == 0) {
+                    // If opening the quiz for the first time in this session:
+                    // 1. If it's Review Mode (attempted == true), start from 1st question (index 0)
+                    // 2. If it's Resume Mode (attempted == false), jump to last answered question
+                    if (_currentIndex.value == 0 && !isReviewMode) {
                         val lastAnsweredIndex = questions.indexOfLast { it.answeredIdx != -1 }
                         if (lastAnsweredIndex != -1) {
                             val nextIndex = if (lastAnsweredIndex < questions.size - 1) {
