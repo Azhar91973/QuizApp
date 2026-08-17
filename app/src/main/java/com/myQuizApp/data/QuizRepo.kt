@@ -2,6 +2,7 @@ package com.myQuizApp.data
 
 import android.content.Context
 import android.util.Log
+import com.myQuizApp.R
 import com.myQuizApp.data.local.dao.QuestionsDao
 import com.myQuizApp.data.local.dao.QuizCategoryDao
 import com.myQuizApp.data.local.entity.QuestionsEntity
@@ -11,6 +12,7 @@ import com.myQuizApp.data.remote.dto.QuestionsDto
 import com.myQuizApp.data.remote.dto.QuizCategoryDto
 import com.myQuizApp.domain.model.Question
 import com.myQuizApp.domain.model.QuizCategory
+import com.myQuizApp.utils.Result
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -82,13 +84,17 @@ class QuizRepo @Inject constructor(
         if (totalQuestion == 0) return
 
         val score = ((correctAnswers.toDouble() / totalQuestion) * 10).roundToInt()
-        
+
         val currentBest = quizCategoryDao.getScore(categoryId)
         if (score > currentBest) {
             updateScore(categoryId, score)
         } else {
             // Even if not a high score, mark as attempted
-            quizCategoryDao.insertCategories(listOf(quizCategoryDao.getCategoryById(categoryId).copy(attempted = true)))
+            quizCategoryDao.insertCategories(
+                listOf(
+                    quizCategoryDao.getCategoryById(categoryId).copy(attempted = true)
+                )
+            )
         }
     }
 
@@ -100,27 +106,31 @@ class QuizRepo @Inject constructor(
 
     suspend fun refreshQuestions(
         categoryId: String, questionUrl: String
-    ) {
+    ): Result<Unit> {
         Log.d("DebugQuestions", "refreshQuestions: $categoryId")
-        try {
+        return try {
             val quizResponse = quizApi.getQuestions(questionUrl)
             if (quizResponse.isSuccessful) {
-                val questions = quizResponse.body() ?: return
+                val questions = quizResponse.body() ?: return Result.Error("Empty response")
                 val existingQuestions = questionsDao.getQuestionsByCategory(categoryId)
                 Log.d("QuizRepo", "refreshQuestions: $categoryId $existingQuestions")
                 val entities = questions.map { dto ->
                     dto.toEntity(
                         categoryId = categoryId,
-                        existing = if (existingQuestions.isNotEmpty()) existingQuestions[dto.id - 1] else null
+                        existing = if (existingQuestions.isNotEmpty()) existingQuestions.getOrNull(
+                            dto.id - 1
+                        ) else null
                     )
                 }
                 questionsDao.insertQuestions(entities)
                 quizCategoryDao.updateTotalQuestions(categoryId, questions.size)
+                Result.Success(Unit)
+            } else {
+                Result.Error("Failed to fetch questions pls retry")
             }
         } catch (e: Exception) {
-            Log.d(
-                "QuizRepo", "refreshQuestions: ${e.message}"
-            )
+            Log.d("QuizRepo", "refreshQuestions: ${e.message}")
+            Result.Error(context.getString(R.string.something_went_wrong))
         }
     }
 
@@ -132,8 +142,8 @@ class QuizRepo @Inject constructor(
         }
     }
 
-    suspend fun refreshQuizCategories() {
-        try {
+    suspend fun refreshQuizCategories(): Result<Unit> {
+        return try {
             val quizCategoriesResponse =
                 quizApi.getQuizCategories("ee986f16da9d8303c1acfd364ece22c5")
             if (quizCategoriesResponse.isSuccessful && quizCategoriesResponse.body() != null) {
@@ -144,9 +154,13 @@ class QuizRepo @Inject constructor(
                     quizCategoriesResponse.body()!!.map { quizCategory ->
                         quizCategory.toEntity(existingQuizCategory[quizCategory.id])
                     })
+                Result.Success(Unit)
+            } else {
+                Result.Error("Failed to fetch categories pls retry ")
             }
         } catch (e: Exception) {
             Log.d("QuizRepo", "refreshQuizCategories: ${e.message}")
+            Result.Error(context.getString(R.string.something_went_wrong))
         }
     }
 

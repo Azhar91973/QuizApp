@@ -6,6 +6,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,6 +35,7 @@ import com.myQuizApp.R
 import com.myQuizApp.domain.model.Question
 import com.myQuizApp.ui.theme.StreakOrange
 import com.myQuizApp.ui.theme.SuccessGreen
+import com.myQuizApp.utils.Result
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
@@ -47,7 +50,7 @@ fun QuizScreen(
         viewModel.initializeQuiz(categoryId, questionUrl)
     }
 
-    val quizResult by viewModel.questions.collectAsStateWithLifecycle()
+    val state by viewModel.questionsState.collectAsStateWithLifecycle()
     val streak by viewModel.streak.collectAsStateWithLifecycle()
     val currentIndex by viewModel.currentIndex.collectAsStateWithLifecycle()
 
@@ -64,24 +67,53 @@ fun QuizScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        if (quizResult.isNotEmpty()) {
-            val currentQuestion = quizResult[currentIndex]
-            QuizContent(
-                question = currentQuestion,
-                currentIndex = currentIndex,
-                totalQuestions = quizResult.size,
-                selectedOption = currentQuestion.answeredIdx,
-                streak = streak,
-                onOptionSelected = { optionIndex ->
-                    viewModel.selectOption(optionIndex)
-                },
-                onNext = { viewModel.nextQuestion() },
-                onPrevious = { viewModel.previousQuestion() },
-                onSkip = { viewModel.skipQuestion() }
-            )
-        } else {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        when (val result = state) {
+            is Result.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            is Result.Success -> {
+                val questions = result.data
+                if (questions.isNotEmpty()) {
+                    val currentQuestion = questions[currentIndex]
+                    QuizContent(
+                        question = currentQuestion,
+                        currentIndex = currentIndex,
+                        totalQuestions = questions.size,
+                        selectedOption = currentQuestion.answeredIdx,
+                        streak = streak,
+                        onOptionSelected = { optionIndex ->
+                            viewModel.selectOption(optionIndex)
+                        },
+                        onNext = { viewModel.nextQuestion() },
+                        onPrevious = { viewModel.previousQuestion() },
+                        onSkip = { viewModel.skipQuestion() }
+                    )
+                } else {
+                    Text(
+                        stringResource(R.string.no_questions_available),
+                        modifier = Modifier.align(Alignment.Center),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+            }
+
+            is Result.Error -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Text(
+                            text = stringResource(R.string.error_message, result.message),
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.initializeQuiz(categoryId, questionUrl) }) {
+                            Text("Retry")
+                        }
+                    }
+                }
             }
         }
     }
@@ -267,7 +299,7 @@ fun QuizContent(
                     )
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBackIos, null, modifier = Modifier.size(12.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         stringResource(R.string.previous),
                         style = MaterialTheme.typography.labelMedium,
@@ -333,15 +365,15 @@ fun OptionItem(
 
     Surface(
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .clickable(enabled = status == OptionStatus.Normal) { onClick() },
         shape = RoundedCornerShape(16.dp),
         color = backgroundColor,
         border = BorderStroke(1.dp, borderColor),
         shadowElevation = 0.dp
     ) {
         Row(
-            modifier = Modifier
-                .clickable { onClick() }.padding(14.dp),
+            modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(

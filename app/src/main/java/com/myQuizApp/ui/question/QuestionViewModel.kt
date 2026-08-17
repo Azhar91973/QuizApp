@@ -4,15 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myQuizApp.data.QuizRepo
 import com.myQuizApp.domain.model.Question
+import com.myQuizApp.utils.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -35,48 +31,55 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
     private val _events = MutableSharedFlow<QuizEvent>()
     val events: SharedFlow<QuizEvent> = _events.asSharedFlow()
     private var autoAdvanceJob: Job? = null
-    private val _questions = MutableStateFlow<List<Question>>(emptyList())
-    val questions: StateFlow<List<Question>> = _questions.asStateFlow()
+    
+    private val _questionsState = MutableStateFlow<Result<List<Question>>>(Result.Loading)
+    val questionsState: StateFlow<Result<List<Question>>> = _questionsState.asStateFlow()
 
     private val _category = MutableStateFlow<com.myQuizApp.domain.model.QuizCategory?>(null)
     val category: StateFlow<com.myQuizApp.domain.model.QuizCategory?> = _category.asStateFlow()
 
     fun initializeQuiz(categoryId: String, questionUrl: String) {
         viewModelScope.launch {
-            // Load from DB first
-            launch {
-                quizRepo.getQuestions(categoryId).collect { 
-                    _questions.value = it
-                    if (it.isEmpty()) {
-                        quizRepo.refreshQuestions(categoryId, questionUrl)
+            quizRepo.getQuestions(categoryId).collect { questions ->
+                if (questions.isEmpty()) {
+                    _questionsState.value = Result.Loading
+                    val result = quizRepo.refreshQuestions(categoryId, questionUrl)
+                    if (result is Result.Error) {
+                        _questionsState.value = Result.Error(result.message)
                     }
+                } else {
+                    _questionsState.value = Result.Success(questions)
                 }
             }
-            
-            // Load category info for results
-            launch {
-                quizRepo.getQuizCategories().collect { categories ->
-                    val category = categories.find { it.id == categoryId }
-                    _category.value = category
-                    _bestStreak.value = category?.longestStreak ?: 0
-                }
+        }
+        
+        viewModelScope.launch {
+            quizRepo.getQuizCategories().collect { categories ->
+                val category = categories.find { it.id == categoryId }
+                _category.value = category
+                _bestStreak.value = category?.longestStreak ?: 0
             }
+        }
 
-            launch {
-                quizRepo.observerStreak(categoryId).collect { _streak.value = it }
-            }
+        viewModelScope.launch {
+            quizRepo.observerStreak(categoryId).collect { _streak.value = it }
         }
     }
 
     fun nextQuestion() {
         autoAdvanceJob?.cancel()
-        val questions = questions.value
-        if (_currentIndex.value < (questions.size - 1)) {
-            _currentIndex.value += 1
-        } else {
-            viewModelScope.launch {
-                quizRepo.calculateScore(questions[questions.size - 1].categoryId)
-                _events.emit(QuizEvent.FinishQuiz)
+        val state = _questionsState.value
+        if (state is Result.Success) {
+            val questionsList = state.data
+            if (_currentIndex.value < (questionsList.size - 1)) {
+                _currentIndex.value += 1
+            } else {
+                viewModelScope.launch {
+                    if (questionsList.isNotEmpty()) {
+                        quizRepo.calculateScore(questionsList[0].categoryId)
+                    }
+                    _events.emit(QuizEvent.FinishQuiz)
+                }
             }
         }
     }
@@ -90,7 +93,6 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
         autoAdvanceJob?.cancel()
         _currentIndex.value = 0
         _streak.value = 0
-        // Best streak is kept as high score
         viewModelScope.launch {
             quizRepo.resetQuiz(categoryId)
         }
@@ -104,14 +106,19 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
     }
 
     fun selectOption(optionIndex: Int) {
-        val questionIndex = _currentIndex.value
-        updateAnswer(questions.value[questionIndex], optionIndex)
+        val state = _questionsState.value
+        if (state is Result.Success) {
+            val questionsList = state.data
+            if (questionsList.isNotEmpty()) {
+                val questionIndex = _currentIndex.value
+                updateAnswer(questionsList[questionIndex], optionIndex)
 
-        // Auto-advance after 2 seconds
-        autoAdvanceJob?.cancel()
-        autoAdvanceJob = viewModelScope.launch {
-            delay(2000)
-            nextQuestion()
+                autoAdvanceJob?.cancel()
+                autoAdvanceJob = viewModelScope.launch {
+                    delay(2000)
+                    nextQuestion()
+                }
+            }
         }
     }
 
@@ -127,6 +134,5 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
             if (question.correctOptionIndex == answeredIdx) quizRepo.updateStreak(question.categoryId)
             else resetStreak(question.categoryId)
         }
-
     }
 }
