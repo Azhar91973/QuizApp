@@ -49,6 +49,18 @@ class QuizViewModel @Inject constructor(private val quizRepo: QuizRepo) : ViewMo
                     }
                 } else {
                     _questionsState.value = Result.Success(questions)
+                    // If opening the quiz and not already navigated, jump to the last answered question
+                    if (_currentIndex.value == 0) {
+                        val lastAnsweredIndex = questions.indexOfLast { it.answeredIdx != -1 }
+                        if (lastAnsweredIndex != -1) {
+                            val nextIndex = if (lastAnsweredIndex < questions.size - 1) {
+                                lastAnsweredIndex + 1
+                            } else {
+                                lastAnsweredIndex
+                            }
+                            _currentIndex.value = nextIndex
+                        }
+                    }
                 }
             }
         }
