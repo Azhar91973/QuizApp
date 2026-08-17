@@ -61,6 +61,17 @@ interface QuizCategoryDao {
         categoryId: String
     )
 
+    @Query(
+        """
+        UPDATE quizCategory
+        SET longestStreak= 0
+        WHERE id = :categoryId
+    """
+    )
+    suspend fun resetLongestStreak(
+        categoryId: String
+    )
+
     @Query("SELECT * FROM quizCategory WHERE :id = id")
     suspend fun getCategoryById(id: String): QuizCategoryEntity
 
