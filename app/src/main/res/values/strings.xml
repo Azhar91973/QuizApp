@@ -16,6 +16,13 @@
     <string name="longest_streak">Longest Streak</string>
     <string name="longest_streak_value">%1$d 🔥</string>
     <string name="restart_quiz">Restart Quiz</string>
+    <string name="back_to_categories">Back to Categories</string>
+    <string name="quiz_score_subtitle">You scored %1$d out of %2$d — nice work</string>
+    <string name="choose_challenge">Choose Your Challenge</string>
+    <string name="start">Start</string>
+    <string name="review">Review</string>
+    <string name="progress_summary_new">%1$d Questions</string>
+    <string name="progress_summary_attempted">%1$d Questions | Score: %2$d/10</string>
     <string name="no_quiz_available">No Quiz Available pls try again</string>
     <string name="something_went_wrong">Something went wrong pls try again</string>
 </resources>

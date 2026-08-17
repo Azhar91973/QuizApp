@@ -3,7 +3,7 @@ package com.myQuizApp.di
 import android.content.Context
 import com.chuckerteam.chucker.api.ChuckerInterceptor
 import com.myQuizApp.BuildConfig
-import com.myQuizApp.data.api.QuizApi
+import com.myQuizApp.data.remote.QuizApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

@@ -3,7 +3,9 @@
 # proguardFiles setting in build.gradle.
 
 # Keep data models used for serialization
--keep class com.myQuizApp.data.model.** { *; }
+-keep class com.myQuizApp.data.local.entity.** { *; }
+-keep class com.myQuizApp.data.remote.dto.** { *; }
+-keep class com.myQuizApp.domain.model.** { *; }
 
 # Retrofit
 -keepattributes Signature, InnerClasses, EnclosingMethod
@@ -12,6 +14,7 @@
 -dontwarn retrofit2.**
 -keep class retrofit2.** { *; }
 -keep interface retrofit2.** { *; }
+-keep interface com.myQuizApp.data.remote.** { *; }
 
 # GSON
 -keepattributes Signature
@@ -19,6 +22,11 @@
 -dontwarn sun.misc.**
 -keep class com.google.gson.stream.** { *; }
 -keep class com.google.gson.** { *; }
+-keep class com.google.gson.reflect.TypeToken
+-keep class * extends com.google.gson.reflect.TypeToken
+
+# Room
+-keep class com.myQuizApp.data.local.typeConverters.** { *; }
 
 # Hilt
 -keep @dagger.hilt.android.lifecycle.HiltViewModel class * extends androidx.lifecycle.ViewModel
